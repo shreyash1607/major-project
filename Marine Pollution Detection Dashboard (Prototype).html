@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marine Pollution Detection Dashboard</title>
+<style>
+:root{--bg:#eef3f4;--panel:#fff;--ink:#12303f;--mute:#566f7c;--line:#cddbe0;--sea:#d3e6ec;--land:#e8e4d4;--grid:#b7cfd7;--oil:#6b3fa0;--pl:#c76a12;--al:#1f8a58;--acc:#0f6e8c;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c1a22;--panel:#122632;--ink:#e3eef2;--mute:#8fa8b5;--line:#244050;--sea:#0f2f3e;--land:#1b2a2f;--grid:#1c4254;--oil:#b79cff;--pl:#f0a050;--al:#4cd08e;--acc:#58bfe0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c1a22;--panel:#122632;--ink:#e3eef2;--mute:#8fa8b5;--line:#244050;--sea:#0f2f3e;--land:#1b2a2f;--grid:#1c4254;--oil:#b79cff;--pl:#f0a050;--al:#4cd08e;--acc:#58bfe0;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+h1,h2{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;font-weight:600;margin:0}
+header{padding:20px 20px 8px;max-width:1200px;margin:0 auto}
+h1{font-size:clamp(22px,4vw,30px);letter-spacing:-.01em}
+header p{margin:6px 0 0;color:var(--mute);max-width:70ch}
+.badge{display:inline-block;margin-top:10px;padding:3px 10px;border:1px solid var(--pl);color:var(--pl);border-radius:99px;font-size:13px}
+main{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;max-width:1200px;margin:0 auto;padding:12px 20px 32px}
+@media (max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:12px}
+.chip{display:inline-flex;gap:6px;align-items:center;padding:5px 11px;border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+.chip[aria-pressed="false"]{opacity:.45}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+label{font-size:13px;color:var(--mute);display:inline-flex;gap:6px;align-items:center}
+select,input[type=range]{font:inherit;accent-color:var(--acc)}
+select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+button:focus-visible,[tabindex]:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.mapwrap{overflow-x:auto}
+svg{display:block;width:100%;height:auto;min-width:380px;border-radius:8px}
+.mk{cursor:pointer}
+.mk:hover circle{stroke-width:2.5}
+.lbl{fill:var(--mute);font-size:11px;font-family:system-ui,sans-serif}
+h2{font-size:19px;margin-bottom:2px}
+.sub{color:var(--mute);font-size:13px;margin:0 0 10px}
+.meter{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:4px 0 12px}
+.meter b{display:block;height:100%;background:var(--acc)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:0 0 12px;font-size:14px}
+dt{color:var(--mute)}dd{margin:0;overflow-wrap:anywhere}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.pair figure{margin:0}.pair figcaption{font-size:12px;color:var(--mute);margin-top:3px}
+canvas{width:100%;height:auto;border-radius:6px;image-rendering:pixelated;display:block}
+.act{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--acc);background:transparent;color:var(--acc);cursor:pointer}
+.btn.f{background:var(--acc);color:var(--panel)}
+.st{font-size:12px;padding:1px 8px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mute);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--line)}
+td{padding:6px;border-bottom:1px solid var(--line)}
+tr[data-i]{cursor:pointer}tr[data-i]:hover,tr.on{background:var(--bg)}
+.tw{overflow-x:auto}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;max-height:220px;overflow:auto;font-size:12px}
+.empty{color:var(--mute);padding:20px 4px}
+.full{grid-column:1/-1}
+</style>
+</head>
+<body>
+<header>
+<h1>Marine Pollution Detection Dashboard</h1>
+<p>Prototype of the monitoring interface planned for the Sentinel-1 and Sentinel-2 detection pipeline, showing Indian coastal waters. Detections are candidates for analyst review, not confirmed pollution.</p>
+<span class="badge">Simulated data: no model has been run yet</span>
+</header>
+<main>
+<section class="card" aria-label="Map and filters">
+<div class="bar" id="chips"></div>
+<div class="bar">
+<label>Min confidence <input type="range" id="conf" min="40" max="95" step="5" value="50"><output id="confv">50%</output></label>
+<label>Acquired within <select id="win"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option></select></label>
+<label><input type="checkbox" id="hide"> Hide dismissed</label>
+</div>
+<div class="mapwrap"><svg id="map" viewBox="0 0 700 504" role="img" aria-label="Schematic map of the Indian coast with detection markers"></svg></div>
+<p class="sub" style="margin-top:8px">Schematic coastline for layout only. Marker size reflects detected area; colour reflects pollutant type.</p>
+</section>
+
+<section class="card" id="detail" aria-live="polite"></section>
+
+<section class="card full">
+<h2>Detections</h2>
+<p class="sub" id="count"></p>
+<div class="tw"><table><thead><tr><th>Location</th><th>Type</th><th>Confidence</th><th>Area</th><th>Acquired</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="act"><button class="btn" id="exp">Export GeoJSON</button><button class="btn" id="cp" hidden>Copy to clipboard</button></div>
+<pre id="geo" hidden></pre>
+</section>
+</main>
+<script>
+const T={oil:{l:'Oil-like feature',s:'Sentinel-1 SAR',c:'--oil',p:'S1A_IW_GRDH'},plastic:{l:'Suspected floating debris',s:'Sentinel-2 MSI',c:'--pl',p:'S2B_MSIL2A'},algal:{l:'Algal bloom patch',s:'Sentinel-2 MSI',c:'--al',p:'S2A_MSIL2A'}};
+const NAMES={oil:'Oil-like features',plastic:'Floating debris',algal:'Algal blooms'};
+const COAST=[[67,24.2],[68.2,23.7],[69,22.2],[69.6,21.6],[71,20.7],[72,21.2],[72.5,22.4],[72.9,22],[72.7,21.1],[72.8,19],[73.3,17],[73.8,15.4],[74.8,12.9],[76.2,9.9],[77.5,8.1],[78.2,8.8],[79.3,9.3],[79.8,10.8],[80.3,13.1],[80.1,14.4],[81.2,16.2],[83.3,17.7],[84.9,19.3],[86.7,20.3],[88.1,21.6],[89,21.7],[91.5,22.5],[91.5,24.5],[67,24.5]];
+// name, lon, lat, type, confidence, area km2, days ago, cloud %, look-alike risk, note
+const RAW=[
+['Off Mumbai',72.55,18.9,'oil',.88,4.2,2,5,'Medium','Dark patch near a shipping lane; low-wind slick not ruled out.'],
+['Gulf of Khambhat',72.3,21.6,'plastic',.71,.6,4,18,'High','Sediment plumes and sea foam present in the same tile.'],
+['Off Kochi',75.9,9.8,'algal',.83,12.5,3,12,'Low','Chlorophyll signature consistent across two bands.'],
+['Gulf of Mannar',78.9,8.9,'plastic',.64,.3,6,22,'High','Seagrass mats are a likely look-alike here.'],
+['Off Chennai',80.6,13,'oil',.79,2.1,1,0,'Medium','Single pass; no earlier SAR scene to confirm persistence.'],
+['Off Visakhapatnam',83.6,17.5,'oil',.93,6.8,2,0,'Low','Elongated dark feature, consistent with a vessel discharge pattern.'],
+['Off Paradip',87,20.1,'algal',.76,9.4,5,30,'Medium','Partly cloud-masked; extent may be underestimated.'],
+['Hooghly estuary',88.2,21.3,'plastic',.58,1.1,7,35,'High','High turbidity; spectral separation is weak.'],
+['Off Goa',73.4,15.3,'plastic',.86,.9,9,8,'Low','Linear windrow pattern across two acquisitions.'],
+['Off Mangalore',74.3,12.8,'oil',.52,1.7,11,4,'High','Wind-shadow look-alike likely; treat as low priority.'],
+['Off Dwarka',68.6,22,'oil',.81,3,14,0,'Medium','Near a tanker anchorage; verify with vessel records.'],
+['Off Nagapattinam',80.2,10.7,'algal',.69,5.2,8,15,'Low','Bloom edge shifted since the previous pass.']];
+const TODAY=new Date();
+const fmt=n=>{const d=new Date(TODAY);d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
+const D=RAW.map((r,i)=>({i,n:r[0],lon:r[1],lat:r[2],t:r[3],c:r[4],a:r[5],ago:r[6],cl:r[7],r:r[8],note:r[9],st:'Needs review'}));
+const S={on:{oil:1,plastic:1,algal:1},min:.5,win:30,hide:false,sel:0};
+const $=id=>document.getElementById(id);
+const X=l=>((l-66.5)*28).toFixed(1),Y=l=>((24.5-l)*28).toFixed(1);
+const vis=()=>D.filter(d=>S.on[d.t]&&d.c>=S.min&&d.ago<=S.win&&!(S.hide&&d.st==='Dismissed'));
+function rng(s){return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function paint(cv,d,mask){
+ const W=160,H=110,x=cv.getContext('2d'),R=rng(d.i*97+13);cv.width=W;cv.height=H;
+ x.fillStyle='#1d5a72';x.fillRect(0,0,W,H);
+ for(let k=0;k<420;k++){x.fillStyle=`rgba(${120+R()*60|0},${190+R()*40|0},${210+R()*30|0},${.05+R()*.12})`;x.fillRect(R()*W,R()*H,2+R()*3,2)}
+ const cs=[];let a=W,b=H,c=0,e=0;
+ for(let k=0;k<16;k++){const px=80+(R()-.5)*50,py=55+(R()-.5)*28,r=5+R()*10;cs.push([px,py,r]);a=Math.min(a,px-r);b=Math.min(b,py-r);c=Math.max(c,px+r);e=Math.max(e,py+r)}
+ const col={oil:'rgba(8,14,22,.8)',plastic:'rgba(235,232,215,.75)',algal:'rgba(70,175,100,.65)'}[d.t];
+ cs.forEach(([px,py,r])=>{x.fillStyle=col;x.beginPath();if(d.t==='plastic')x.ellipse(px,py,r*1.4,r*.35,.5,0,7);else x.arc(px,py,r,0,7);x.fill()});
+ if(mask){cs.forEach(([px,py,r])=>{x.fillStyle='rgba(255,61,168,.35)';x.beginPath();x.arc(px,py,r,0,7);x.fill()});x.strokeStyle='#ff3da8';x.setLineDash([4,3]);x.lineWidth=1.5;x.strokeRect(a-3,b-3,c-a+6,e-b+6)}
+}
+function drawMap(v){
+ let s=`<rect width="700" height="504" fill="var(--sea)"/>`;
+ for(let g=70;g<=90;g+=5)s+=`<line x1="${X(g)}" x2="${X(g)}" y1="0" y2="504" stroke="var(--grid)" stroke-width=".7"/><text class="lbl" x="${+X(g)+3}" y="498">${g}°E</text>`;
+ for(let g=10;g<=20;g+=5)s+=`<line y1="${Y(g)}" y2="${Y(g)}" x1="0" x2="700" stroke="var(--grid)" stroke-width=".7"/><text class="lbl" x="4" y="${+Y(g)-3}">${g}°N</text>`;
+ s+=`<path d="M${COAST.map(p=>X(p[0])+' '+Y(p[1])).join('L')}Z" fill="var(--land)" stroke="var(--mute)" stroke-width="1"/>`;
+ s+=`<text class="lbl" x="${X(77)}" y="${Y(21)}" font-size="14" style="font-size:14px;letter-spacing:.3em">INDIA</text><text class="lbl" x="${X(68)}" y="${Y(14)}">Arabian Sea</text><text class="lbl" x="${X(85)}" y="${Y(14)}">Bay of Bengal</text>`;
+ v.forEach(d=>{const r=Math.min(18,5+Math.sqrt(d.a)*2.6),col=`var(${T[d.t].c})`,on=d.i===S.sel;
+  s+=`<g class="mk" tabindex="0" role="button" data-i="${d.i}" aria-label="${d.n}, ${T[d.t].l}, confidence ${Math.round(d.c*100)} percent">${on?`<circle cx="${X(d.lon)}" cy="${Y(d.lat)}" r="${r+6}" fill="none" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/>`:''}<circle cx="${X(d.lon)}" cy="${Y(d.lat)}" r="${r}" fill="${col}" fill-opacity="${d.st==='Dismissed'?.2:.75}" stroke="${col}" stroke-width="1.5"/></g>`});
+ $('map').innerHTML=s;
+}
+function drawDetail(){
+ const d=D[S.sel],el=$('detail');
+ if(!d||!vis().includes(d)){el.innerHTML='<div class="empty">Select a marker or table row to inspect a detection.</div>';return}
+ const t=T[d.t],ymd=fmt(d.ago).replace(/-/g,'');
+ el.innerHTML=`<h2>${d.n}</h2><p class="sub">${t.l} <span class="st">${d.st}</span></p>
+ <div>Model confidence: <b>${Math.round(d.c*100)}%</b></div><div class="meter"><b style="width:${d.c*100}%"></b></div>
+ <div class="pair"><figure><canvas id="c1"></canvas><figcaption>Tile preview (simulated)</figcaption></figure><figure><canvas id="c2"></canvas><figcaption>Predicted mask (simulated)</figcaption></figure></div>
+ <dl><dt>Satellite</dt><dd>${t.s}</dd><dt>Acquired</dt><dd>${fmt(d.ago)}</dd><dt>Area</dt><dd>${d.a} km²</dd><dt>Position</dt><dd>${d.lat.toFixed(2)}°N, ${d.lon.toFixed(2)}°E</dd>
+ <dt>Quality</dt><dd>${d.t==='oil'?'Cloud-independent (SAR)':'Cloud cover '+d.cl+'%'}</dd><dt>Look-alike risk</dt><dd>${d.r}. ${d.note}</dd>
+ <dt>Provenance</dt><dd>${t.p}_${ymd} · preprocessing v0.3 · model v0.1-demo</dd></dl>
+ <p class="sub">Satellite imagery alone cannot establish composition or source. Confirm with field or vessel data before reporting.</p>
+ <div class="act"><button class="btn f" onclick="setSt('Confirmed')">Confirm</button><button class="btn" onclick="setSt('Dismissed')">Dismiss as look-alike</button><button class="btn" onclick="setSt('Needs review')">Reset</button></div>`;
+ paint($('c1'),d,false);paint($('c2'),d,true);
+}
+function drawList(v){
+ $('count').textContent=`${v.length} of ${D.length} detections shown · ${v.filter(d=>d.st==='Needs review').length} awaiting review`;
+ $('rows').innerHTML=v.length?[...v].sort((a,b)=>b.c-a.c).map(d=>`<tr data-i="${d.i}" class="${d.i===S.sel?'on':''}"><td>${d.n}</td><td>${T[d.t].l}</td><td>${Math.round(d.c*100)}%</td><td>${d.a} km²</td><td>${fmt(d.ago)}</td><td><span class="st">${d.st}</span></td></tr>`).join(''):'<tr><td colspan="6" class="empty">No detections match these filters. Lower the confidence threshold or widen the date window.</td></tr>';
+}
+function drawChips(){
+ $('chips').innerHTML=Object.keys(T).map(k=>`<button class="chip" data-k="${k}" aria-pressed="${!!S.on[k]}"><i style="background:var(${T[k].c})"></i>${NAMES[k]} (${D.filter(d=>d.t===k&&d.c>=S.min&&d.ago<=S.win).length})</button>`).join('');
+}
+function render(){const v=vis();drawChips();drawMap(v);drawDetail();drawList(v);$('geo').hidden=true;$('cp').hidden=true}
+function setSt(s){D[S.sel].st=s;render()}
+function pick(e){const t=e.target.closest('[data-i]');if(t){S.sel=+t.dataset.i;render();if(e.type==='click'&&t.tagName==='TR')$('detail').scrollIntoView({block:'nearest',behavior:'smooth'})}}
+$('map').addEventListener('click',pick);$('rows').addEventListener('click',pick);
+$('map').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}});
+$('chips').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b){S.on[b.dataset.k]=!S.on[b.dataset.k];render()}});
+$('conf').oninput=e=>{S.min=e.target.value/100;$('confv').textContent=e.target.value+'%';render()};
+$('win').onchange=e=>{S.win=+e.target.value;render()};
+$('hide').onchange=e=>{S.hide=e.target.checked;render()};
+$('exp').onclick=()=>{
+ const g={type:'FeatureCollection',features:vis().map(d=>({type:'Feature',geometry:{type:'Point',coordinates:[d.lon,d.lat]},properties:{location:d.n,class:T[d.t].l,sensor:T[d.t].s,acquired:fmt(d.ago),confidence:d.c,area_km2:d.a,status:d.st,simulated:true}}))};
+ $('geo').textContent=JSON.stringify(g,null,1);$('geo').hidden=false;$('cp').hidden=false};
+$('cp').onclick=async()=>{try{await navigator.clipboard.writeText($('geo').textContent);$('cp').textContent='Copied'}catch(e){$('cp').textContent='Select the text above and copy it'}};
+render();
+</script>
+</body>
+</html>
